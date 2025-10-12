@@ -147,7 +147,7 @@ Transform:
   m_GameObject: {fileID: 116462871}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: -2.668}
+  m_LocalPosition: {x: 0, y: 3.003, z: -9.341}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -693,12 +693,12 @@ MonoBehaviour:
   levitateKey: 32
   levitateUpAccel: 6
   levitateUpMax: 2.2
-  dropDownSpeed: 12
+  dropDownSpeed: 4
   cameraTransform: {fileID: 116462872}
-  cameraTargetOffset: {x: 0, y: 1.6, z: 0}
-  cameraDistance: 5
-  yawSpeed: 180
-  pitchSpeed: 120
+  cameraTargetOffset: {x: 0, y: 3, z: 0}
+  cameraDistance: 13
+  yawSpeed: 250
+  pitchSpeed: 180
   minPitch: -20
   maxPitch: 70
 --- !u!4 &603559828
@@ -1192,7 +1192,7 @@ ParticleSystem:
   startDelay:
     serializedVersion: 2
     minMaxState: 0
-    scalar: 2
+    scalar: 0
     minScalar: 1.2
     maxCurve:
       serializedVersion: 2
@@ -1887,7 +1887,7 @@ ParticleSystem:
     sphericalDirectionAmount: 0
     randomPositionAmount: 0
     radius:
-      value: 0.5
+      value: 0.3
       mode: 0
       spread: 0
       speed:
@@ -2006,7 +2006,7 @@ ParticleSystem:
     rateOverTime:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 30
+      scalar: 50
       minScalar: 10
       maxCurve:
         serializedVersion: 2
@@ -2059,8 +2059,8 @@ ParticleSystem:
     rateOverDistance:
       serializedVersion: 2
       minMaxState: 3
-      scalar: 50
-      minScalar: 30
+      scalar: 15
+      minScalar: 5
       maxCurve:
         serializedVersion: 2
         m_Curve:
