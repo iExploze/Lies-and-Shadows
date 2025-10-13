@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Rendering;
 
 public class DarkMovement : MonoBehaviour
 {
@@ -31,6 +32,9 @@ public class DarkMovement : MonoBehaviour
     // orbit state
     private float yaw;
     private float pitch = 15f;
+
+    [SerializeField] private Transform playerLightForm; // PlayerDarkForm
+    [SerializeField] private Transform lightHitbox;
 
     void Awake()
     {
@@ -153,5 +157,15 @@ public class DarkMovement : MonoBehaviour
         Vector3 camPos = target - rot * Vector3.forward * cameraDistance;
 
         cameraTransform.SetPositionAndRotation(camPos, rot);
+        mirrorLightLocation();
+    }
+
+    void mirrorLightLocation()
+    {
+        if (playerLightForm) 
+        {
+            playerLightForm.SetPositionAndRotation(transform.position, transform.rotation);
+            lightHitbox.SetPositionAndRotation(transform.position, transform.rotation);
+        } 
     }
 }

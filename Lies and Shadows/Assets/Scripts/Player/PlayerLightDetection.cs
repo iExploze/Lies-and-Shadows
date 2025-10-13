@@ -1,74 +1,41 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class PlayerLightDetection : MonoBehaviour
+public class PlayerLightDetection : MonoBehaviour, ILightHittable
 {
-    // True if at least one tracked light currently hits the player.
-    public bool InLight => _activeLights.Count > 0;
-
-    // Backwards-compatible getter the rest of your code already calls.
-    public bool inLight() => InLight;
-
-    // Track which lights are currently shining on the player.
-    private readonly HashSet<Light> _activeLights = new HashSet<Light>();
-
-    // Optional: cache last state to fire events or do work only on change.
-    private bool _lastInLight = false;
-
-    // (Optional) simple event hook if you want to react to changes.
-    public System.Action<bool> OnInLightChanged;
-
-    // --- Call these from your light hit logic (triggers, raycasts, etc.) ---
+    // Track all current lights
+    private HashSet<Light> currentLights = new HashSet<Light>();
+    private bool isInLight = false;
 
     public void OnLightEnter(Light lightSource)
     {
-        if (!lightSource) return;
-        if (_activeLights.Add(lightSource))
-            CheckStateChanged();
-    }
-
-    public void OnLightStay(Light lightSource)
-    {
-        if (!lightSource) return;
-        // Ensure we keep tracking the light while it's still hitting the player.
-        if (_activeLights.Add(lightSource))
-            CheckStateChanged();
+        currentLights.Add(lightSource);
     }
 
     public void OnLightExit(Light lightSource)
     {
-        if (!lightSource) return;
-        if (_activeLights.Remove(lightSource))
-            CheckStateChanged();
+        currentLights.Remove(lightSource);
     }
 
-    // --- Housekeeping ---
-
-    void Update()
+    public void OnLightStay(Light lightSource)
     {
-        // Clean up destroyed lights so they don't keep you "stuck" in light.
-        if (_activeLights.Count == 0) return;
+        isInLight = true;
+    }
 
-        // Collect null/destroyed entries without allocating each frame.
-        _toPrune.Clear();
-        foreach (var l in _activeLights)
-            if (!l) _toPrune.Add(l);
-
-        if (_toPrune.Count > 0)
+    void Update() 
+    {
+        if (currentLights.Count == 0)
         {
-            foreach (var l in _toPrune) _activeLights.Remove(l);
-            CheckStateChanged();
+            isInLight = false;
+        }
+        else 
+        {
+            isInLight = true;
         }
     }
 
-    private readonly List<Light> _toPrune = new List<Light>(8);
-
-    private void CheckStateChanged()
+    public bool inLight() 
     {
-        bool now = InLight;
-        if (now == _lastInLight) return;
-        _lastInLight = now;
-        OnInLightChanged?.Invoke(now);
-        // Debug.Log($"Player InLight = {now}");
+        return isInLight;
     }
 }
