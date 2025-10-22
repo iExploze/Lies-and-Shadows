@@ -1,88 +1,103 @@
 using UnityEngine;
 
+// Make sure your Main Camera has a CinemachineBrain, and your FPS VCam looks at a Head/CameraPivot.
+// This script ONLY handles movement; Cinemachine handles look (Pan Tilt / POV).
+
 [RequireComponent(typeof(CharacterController))]
 public class LightMovement : MonoBehaviour
 {
     [Header("Movement")]
-    public float moveSpeed = 4.5f;
-    public float sprintMultiplier = 1.7f;
-    public KeyCode sprintKey = KeyCode.LeftShift;
+    [SerializeField] private float moveSpeed = 4.5f;
+    [SerializeField] private float sprintMultiplier = 1.7f;
+    [SerializeField] private KeyCode sprintKey = KeyCode.LeftShift;
 
-    [Header("Jump")]
-    public float jumpHeight = 1.6f;   // meters
-    public float gravity = -20f;      // negative value
+    [Header("Jump / Gravity")]
+    [Tooltip("Use a negative number (e.g., -20)")]
+    [SerializeField] private float gravity = -20f;
+    [SerializeField] private float jumpHeight = 1.6f;   // in meters
 
-    [Header("Mouse Look")]
-    public Transform cameraTransform; // Drag your child Camera here
-    public float mouseSensitivity = 120f;
-    public float verticalLookLimit = 85f;
-
-    [SerializeField] private Transform playerDarkForm; // PlayerDarkForm
-    [SerializeField] private Transform lightHitbox;
+    [Header("Camera Reference (optional)")]
+    [Tooltip("Leave empty to auto-use Camera.main (recommended with Cinemachine).")]
+    [SerializeField] private Transform cameraTransform;
 
     private CharacterController controller;
-    private float xRot;               // camera pitch
-    private float verticalVelocity;   // y velocity only
+    private float verticalVelocity;   // y-only velocity accumulator
+
+    void Awake()
+    {
+        controller = GetComponent<CharacterController>();
+    }
 
     void Start()
     {
-        controller = GetComponent<CharacterController>();
+        // Lock cursor for FPS control (Cinemachine handles the rotation elsewhere)
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
+
+        EnsureCameraRef();
     }
 
     void Update()
     {
-        HandleLook();
+        // In case the main camera changes (scene reloads, etc.)
+        if (cameraTransform == null) EnsureCameraRef();
+
         HandleMoveAndJump();
-        mirrorDarkTransform();
     }
 
-    void HandleLook()
+    private void EnsureCameraRef()
     {
-        float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity * Time.deltaTime;
-        float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity * Time.deltaTime;
-
-        transform.Rotate(Vector3.up * mouseX);
-
-        xRot -= mouseY;
-        xRot = Mathf.Clamp(xRot, -verticalLookLimit, verticalLookLimit);
-        if (cameraTransform != null)
-            cameraTransform.localRotation = Quaternion.Euler(xRot, 0f, 0f);
+        if (cameraTransform == null && Camera.main != null)
+            cameraTransform = Camera.main.transform;
     }
 
-    void mirrorDarkTransform() 
+    private void HandleMoveAndJump()
     {
-        // --- Mirror root and dark form to this light form pose ---
-        if (playerDarkForm)
-        {
-            playerDarkForm.SetPositionAndRotation(transform.position, transform.rotation);
-            lightHitbox.SetPositionAndRotation(transform.position, transform.rotation);
-        }
-    }
-
-    void HandleMoveAndJump()
-    {
+        // Ground snap
         if (controller.isGrounded && verticalVelocity < 0f)
             verticalVelocity = -2f;
 
-        float h = Input.GetAxisRaw("Horizontal"); // A/D
-        float v = Input.GetAxisRaw("Vertical");   // W/S
-        Vector3 input = new Vector3(h, 0f, v).normalized;
+        // Raw is snappy; switch to GetAxis for smoothing if desired
+        float inputX = Input.GetAxisRaw("Horizontal"); // A/D or left/right
+        float inputZ = Input.GetAxisRaw("Vertical");   // W/S or up/down
+
+        Vector3 input = new Vector3(inputX, 0f, inputZ);
+        if (input.sqrMagnitude > 1f) input.Normalize();
 
         float speed = moveSpeed * (Input.GetKey(sprintKey) ? sprintMultiplier : 1f);
 
-        Vector3 horizontalMove = transform.TransformDirection(input) * speed;
+        // Movement relative to camera facing (Cinemachine controls this)
+        Vector3 forward = Vector3.forward;
+        Vector3 right = Vector3.right;
 
+        if (cameraTransform != null)
+        {
+            forward = cameraTransform.forward;
+            right   = cameraTransform.right;
+
+            // Keep it horizontal
+            forward.y = 0f;
+            right.y   = 0f;
+            forward.Normalize();
+            right.Normalize();
+        }
+
+        Vector3 horizontalMove = (forward * input.z + right * input.x) * speed;
+
+        // Jump
         if (controller.isGrounded && Input.GetButtonDown("Jump"))
         {
+            // v = sqrt(2 * g * h); with g negative, use -gravity
             verticalVelocity = Mathf.Sqrt(2f * -gravity * jumpHeight);
         }
 
+        // Apply gravity over time
         verticalVelocity += gravity * Time.deltaTime;
 
-        Vector3 move = new Vector3(horizontalMove.x, verticalVelocity, horizontalMove.z);
+        // Final velocity vector (units/second)
+        Vector3 velocity = new Vector3(horizontalMove.x, verticalVelocity, horizontalMove.z);
 
-        controller.Move(move * Time.deltaTime);
+        // CharacterController.Move expects displacement (units), not velocity
+        controller.Move(velocity * Time.deltaTime);
     }
 }
