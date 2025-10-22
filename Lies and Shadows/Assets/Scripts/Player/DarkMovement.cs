@@ -15,45 +15,34 @@ public class DarkMovement : MonoBehaviour
     public float levitateUpMax = 2.2f;    // cap ascent speed while levitating
     public float dropDownSpeed = 14f;     // instant downward speed on release
 
-    [Header("Camera (Orbit, no zoom)")]
-    public Transform cameraTransform;
-    public Vector3 cameraTargetOffset = new Vector3(0f, 1.4f, 0f);
-    public float cameraDistance = 5f;
-    public float yawSpeed = 180f;         // Mouse X
-    public float pitchSpeed = 120f;       // Mouse Y
-    public float minPitch = -20f;
-    public float maxPitch = 70f;
+    [Header("Camera-Relative Input")]
+    [SerializeField] private Transform cameraTransform;   // leave empty to auto-grab Camera.main
+
+
 
     private Rigidbody rb;
     private Vector2 input;                // XZ input
     private bool levitating;
     private bool justReleased;
 
-    // orbit state
-    private float yaw;
-    private float pitch = 15f;
 
-    [SerializeField] private Transform playerLightForm; // PlayerDarkForm
-    [SerializeField] private Transform lightHitbox;
 
     void Awake()
     {
         rb = GetComponent<Rigidbody>();
         rb.useGravity = true;
         rb.interpolation = RigidbodyInterpolation.Interpolate;
-        rb.constraints = RigidbodyConstraints.FreezeRotation; // don’t spin the particle blob
-
-        // Optional cursor lock for consistent orbit
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
+        rb.constraints = RigidbodyConstraints.FreezeRotation; // don't spin the particle blob
+        if (cameraTransform == null && Camera.main != null) cameraTransform = Camera.main.transform;
     }
 
     void Start()
     {
-        // Initialize camera yaw from current facing projection (not required since we don't rotate body)
-        Vector3 fwd = transform.forward; fwd.y = 0f;
-        if (fwd.sqrMagnitude > 1e-4f) yaw = Quaternion.LookRotation(fwd).eulerAngles.y;
+        // Lock cursor for FPS control (Cinemachine handles the rotation elsewhere)
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
     }
+
 
     void Update()
     {
@@ -69,26 +58,28 @@ public class DarkMovement : MonoBehaviour
         if (up) { levitating = false; justReleased = true; }
         if (!hold && !up) levitating = false;
 
-        // Orbit camera (no zoom)
-        float mx = Input.GetAxis("Mouse X");
-        float my = Input.GetAxis("Mouse Y");
-        yaw += mx * yawSpeed * Time.deltaTime;
-        pitch -= my * pitchSpeed * Time.deltaTime;
-        pitch = Mathf.Clamp(pitch, minPitch, maxPitch);
     }
 
     void FixedUpdate()
     {
-        // Camera-relative basis for forces
-        Vector3 camF = Vector3.forward;
-        Vector3 camR = Vector3.right;
-        if (cameraTransform)
-        {
-            camF = cameraTransform.forward; camF.y = 0f; camF.Normalize();
-            camR = cameraTransform.right; camR.y = 0f; camR.Normalize();
-        }
+        // OLD (world-relative):
+        // Vector3 wishDir = new Vector3(input.x, 0f, input.y);
 
-        Vector3 wishDir = (camR * input.x + camF * input.y);
+        // NEW (camera-relative on XZ):
+        Vector3 wishDir = Vector3.zero;
+        if (cameraTransform != null)
+        {
+            // flatten camera forward/right onto XZ so looking up/down doesn't affect movement
+            Vector3 camFwd = cameraTransform.forward;  camFwd.y = 0f;  camFwd.Normalize();
+            Vector3 camRight = cameraTransform.right;  camRight.y = 0f; camRight.Normalize();
+
+            wishDir = camRight * input.x + camFwd * input.y;  // A/D + W/S
+        }
+        else
+        {
+            // fallback to world-relative if no camera found
+            wishDir = new Vector3(input.x, 0f, input.y);
+        }
         float wishMag = Mathf.Clamp01(wishDir.magnitude);
         if (wishMag > 1e-4f) wishDir /= wishMag;
 
@@ -148,24 +139,5 @@ public class DarkMovement : MonoBehaviour
         }
     }
 
-    void LateUpdate()
-    {
-        if (!cameraTransform) return;
 
-        Quaternion rot = Quaternion.Euler(pitch, yaw, 0f);
-        Vector3 target = transform.position + cameraTargetOffset;
-        Vector3 camPos = target - rot * Vector3.forward * cameraDistance;
-
-        cameraTransform.SetPositionAndRotation(camPos, rot);
-        mirrorLightLocation();
-    }
-
-    void mirrorLightLocation()
-    {
-        if (playerLightForm) 
-        {
-            playerLightForm.SetPositionAndRotation(transform.position, transform.rotation);
-            lightHitbox.SetPositionAndRotation(transform.position, transform.rotation);
-        } 
-    }
 }
