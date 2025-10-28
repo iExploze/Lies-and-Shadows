@@ -3,31 +3,42 @@ using UnityEngine;
 public class PlayerLightStateManager : MonoBehaviour
 {
     // Start is called once before the first execution of Update after the MonoBehaviour is created
-    [SerializeField] private GameObject playerLightForm;
-    [SerializeField] private Camera LightCamera;
+    [Header("Light Parts")]
+    [SerializeField] private PlayerLightDetection lightDetect;
+    [SerializeField] private PlayerDarkDetection darkDetect;
 
-    [SerializeField] private GameObject playerDarkForm;
-    [SerializeField] private Camera DarkCamera;
+    private PlayerStateManager PlayerStateManager;
 
-    private PlayerLightDetection playerLightDetection;
+    private bool inLight;
+
 
     void Start()
     {
-        playerLightDetection = this.GetComponentInChildren<PlayerLightDetection>();
+        inLight = true;
+
+        PlayerStateManager = GetComponent<PlayerStateManager>();
     }
 
     // Update is called once per frame
     void Update()
     {
-        if (playerLightDetection.inLight() && !playerLightForm.activeSelf)
+        if (inLight && !PlayerStateManager.isLightState())
         {
-            playerLightForm.SetActive(true);
-            playerDarkForm.SetActive(false);
-        } 
-        else if(!playerLightDetection.inLight() && !playerDarkForm.activeSelf)
-        {
-            playerDarkForm.SetActive(true);
-            playerLightForm.SetActive(false);
+            PlayerStateManager.SwtichToLightForm();
         }
+        else if (!inLight && PlayerStateManager.isLightState())
+        {
+            PlayerStateManager.SwtichToShadowForm();
+        }
+    }
+
+    public void updateLight(bool change) 
+    {
+        inLight = change;
+    }
+
+    public bool isInLight() 
+    {
+        return inLight;
     }
 }

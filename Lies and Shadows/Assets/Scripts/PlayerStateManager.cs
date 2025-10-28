@@ -124,4 +124,10 @@ public class PlayerStateManager : MonoBehaviour
         e.y = Mathf.Repeat(desiredYaw + 360f, 360f);
         target.transform.eulerAngles = e;
     }
+    public bool isLightState() 
+    {
+        if (currentState == FormState.LightMode)
+            return true;
+        else return false;
+    }
 }

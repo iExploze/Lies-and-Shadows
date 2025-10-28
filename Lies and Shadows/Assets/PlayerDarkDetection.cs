@@ -1,11 +1,35 @@
 using UnityEngine;
 
-public class PlayerDarkDetection : MonoBehaviour
+public class PlayerDarkDetection : MonoBehaviour, ILightHittable
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    // Track all current lights
+    [SerializeField] private PlayerLightStateManager playerLightStateManager;
+
+    private bool inLight = false;
+
+    void Awake() 
     {
-        
+        inLight = false;
+    }
+
+    void Start() 
+    {
+        if (playerLightStateManager == null)
+            playerLightStateManager = FindAnyObjectByType<PlayerLightStateManager>();
+    }
+    public void OnLightEnter(Light lightSource)
+    {
+        playerLightStateManager.updateLight(true);
+    }
+
+    public void OnLightExit(Light lightSource)
+    {
+
+    }
+
+    public void OnLightStay(Light lightSource)
+    {
+        inLight = true;
     }
 
     // Update is called once per frame
